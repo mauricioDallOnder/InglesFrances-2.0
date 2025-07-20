@@ -10,26 +10,25 @@ import string
 import RuleBasedModels
 from string import punctuation
 import time
-
+import re
 
 def clean_text(text: str) -> list:
     """
-    Limpa o texto de forma consistente com o front-end.
-    Remove pontuação final mas mantém apóstrofos e hífens internos.
+    Limpa o texto removendo pontuação final de frases/cláusulas,
+    mas mantendo apóstrofos e hífens internos para sincronia com o front-end.
     """
-    # Define a pontuação a ser removida (tudo exceto apóstrofo e hífen)
-    punct_to_remove = ''.join(c for c in string.punctuation if c not in "-'")
+    # 1. Converte para minúsculas
+    text = text.lower()
     
-    # Cria uma tabela de tradução para remover a pontuação de forma eficiente
-    translator = str.maketrans('', '', punct_to_remove)
+    # 2. Remove apenas a pontuação que não faz parte de palavras (.,;?!)
+    # Esta expressão regular substitui os caracteres .,;?! por uma string vazia
+    cleaned_text = re.sub(r'[.,;?!]', '', text)
     
-    # Aplica a limpeza
-    cleaned_text = text.translate(translator)
-    
-    # Converte para minúsculas e divide em palavras, removendo espaços vazios
-    words = cleaned_text.lower().strip().split()
+    # 3. Divide o texto limpo por espaços e remove quaisquer elementos vazios
+    words = cleaned_text.strip().split()
     
     return words
+
 
 def getTrainer(language: str):
 

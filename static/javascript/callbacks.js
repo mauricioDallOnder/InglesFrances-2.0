@@ -696,12 +696,16 @@ const correctEnglishWordTiming = (word_idx, startTimes, endTimes) => {
 const cleanAndSplitText = (text) => {
     if (!text) return [];
 
-    // Remove pontuação comum, mas mantém o apóstrofo (') e o hífen (-)
-    let cleanedText = text.replace(/[.,;!?]/g, '');
-    
-    // Converte para minúsculas e divide por espaços.
-    // .filter(Boolean) remove quaisquer strings vazias resultantes de espaços duplos.
-    return cleanedText.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    // 1. Converte para minúsculas
+    let lowerText = text.toLowerCase();
+
+    // 2. Remove apenas a pontuação que não faz parte de palavras (.,;?!)
+    // Esta expressão regular faz exatamente o mesmo que a do Python
+    let cleanedText = lowerText.replace(/[.,;?!]/g, '');
+
+    // 3. Divide o texto limpo por espaços e remove quaisquer elementos vazios
+    // .filter(Boolean) é uma forma curta de remover strings vazias do array
+    return cleanedText.trim().split(/\s+/).filter(Boolean);
 };
 
 // Função melhorada para obter texto atual limpo
