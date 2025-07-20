@@ -390,23 +390,42 @@ const startMediaDevice = () => {
 
                         // Mantém a string de correção como uma única string, sem split.
                         const correctness_string = data.is_letter_correct_all_words;
-                        let correctness_idx = 0; // Um índice para percorrer a string de correção.
+                  
+                // CÓDIGO NOVO E CORRIGIDO
+                    let coloredWords = "";
+                    // O índice da string de correção de letras
+                    let correctness_idx = 0; 
+                    
+                    for (let word_idx = 0; word_idx < currentTextWords.length; word_idx++) {
+                        let wordTemp = '';
+                        const currentWord = currentTextWords[word_idx];
+                        
+                        // Pega a categoria geral de pronúncia da palavra (0: verde, 1: laranja, 2: vermelho)
+                        const wordCategory = parseInt(wordCategories[word_idx]);
+                        const overallWordColor = accuracy_colors[wordCategory];
 
-                        let coloredWords = "";
-                        for (let word_idx = 0; word_idx < currentTextWords.length; word_idx++) {
-                            let wordTemp = '';
-                            let currentWord = currentTextWords[word_idx];
+                        for (let letter_idx = 0; letter_idx < currentWord.length; letter_idx++) {
+                            let final_letter_color = '';
 
-                            for (let letter_idx = 0; letter_idx < currentWord.length; letter_idx++) {
-                                // Verifica a correção usando o índice corrido e avança o índice.
-                                let letter_is_correct = correctness_string[correctness_idx] === '1';
-                                correctness_idx++;
-
-                                let color_letter = letter_is_correct ? 'green' : 'red';
-                                wordTemp += '<font color=' + color_letter + '>' + currentWord[letter_idx] + "</font>";
+                            // Se a pronúncia da palavra foi ruim (vermelha) ou média (laranja),
+                            // usa essa cor para todas as letras.
+                            if (wordCategory === 1 || wordCategory === 2) { // 1=laranja, 2=vermelho
+                                final_letter_color = overallWordColor;
+                            } else {
+                                // Se a pronúncia da palavra foi boa (verde), usa a lógica letra a letra.
+                                const letter_is_correct = correctness_string[correctness_idx] === '1';
+                                final_letter_color = letter_is_correct ? 'green' : 'red';
                             }
-                            coloredWords += " " + wrapWordForIndividualPlayback(wordTemp, word_idx);
+                            
+                            wordTemp += '<font color=' + final_letter_color + '>' + currentWord[letter_idx] + "</font>";
+                            
+                            // Avança o índice da string de correção de qualquer maneira
+                            if(correctness_idx < correctness_string.length -1)
+                                correctness_idx++;
                         }
+                        
+                        coloredWords += " " + wrapWordForIndividualPlayback(wordTemp, word_idx);
+                    }
 
 
 
