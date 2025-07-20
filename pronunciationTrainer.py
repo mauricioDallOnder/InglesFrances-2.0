@@ -6,20 +6,29 @@ import WordMetrics
 import WordMatching as wm
 import epitran
 import ModelInterfaces as mi
-import AIModels
+import string
 import RuleBasedModels
 from string import punctuation
 import time
 
-# ADICIONE ESTA FUNÇÃO NO INÍCIO DO ARQUIVO
+
 def clean_text(text: str) -> list:
     """
-    Limpa o texto, remove pontuação, converte para minúsculas e divide em palavras.
+    Limpa o texto de forma consistente com o front-end.
+    Remove pontuação final mas mantém apóstrofos e hífens internos.
     """
-    # Remove pontuação, mas mantém apóstrofos para não separar contrações ainda
-    text_no_punct = ''.join(char for char in text if char not in punctuation or char == "'")
-    # Converte para minúsculas e divide em palavras
-    words = text_no_punct.lower().split()
+    # Define a pontuação a ser removida (tudo exceto apóstrofo e hífen)
+    punct_to_remove = ''.join(c for c in string.punctuation if c not in "-'")
+    
+    # Cria uma tabela de tradução para remover a pontuação de forma eficiente
+    translator = str.maketrans('', '', punct_to_remove)
+    
+    # Aplica a limpeza
+    cleaned_text = text.translate(translator)
+    
+    # Converte para minúsculas e divide em palavras, removendo espaços vazios
+    words = cleaned_text.lower().strip().split()
+    
     return words
 
 def getTrainer(language: str):

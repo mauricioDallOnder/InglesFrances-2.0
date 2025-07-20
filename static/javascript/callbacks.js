@@ -25,7 +25,7 @@ let currentSoundRecorded = false;
 let currentText, currentIpa, real_transcripts_ipa, matched_transcripts_ipa;
 let wordCategories;
 let startTime, endTime;
-
+let realWords, mappedWords; // <-- ADICIONE ESTA LINHA
 // API related variables 
 let AILanguage = "fr"; // Standard is German
 
@@ -237,9 +237,12 @@ const updateRecordingState = async () => {
 }
 
 const generateWordModal = (word_idx) => {
-
-    document.getElementById("single_word_ipa_pair").innerHTML = wrapWordForPlayingLink(real_transcripts_ipa[word_idx], word_idx, false, "black")
-        + ' | ' + wrapWordForPlayingLink(matched_transcripts_ipa[word_idx], word_idx, true, accuracy_colors[parseInt(wordCategories[word_idx])])
+    const referenceWord = realWords[word_idx];
+    const spokenWord = mappedWords[word_idx];
+    document.getElementById("single_word_ipa_pair").innerHTML =
+        wrapWordForPlayingLink(referenceWord, word_idx, false, "black") +
+        ' | ' +
+        wrapWordForPlayingLink(spokenWord, word_idx, true, accuracy_colors[parseInt(wordCategories[word_idx])]);
 }
 
 const recordSample = async () => {
@@ -380,6 +383,8 @@ const startMediaDevice = () => {
 
                         real_transcripts_ipa = data.real_transcripts_ipa.split(" ");
                         matched_transcripts_ipa = data.matched_transcripts_ipa.split(" ");
+                        realWords = data.real_words.split(" ");
+                        mappedWords = data.mapped_words.split(" ");
                         wordCategories = data.pair_accuracy_category.split(" ");
                         let currentTextWords = cleanAndSplitText(currentText[0]);
 
