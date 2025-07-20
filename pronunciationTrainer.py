@@ -103,7 +103,8 @@ class PronunciationTrainer:
                   'real_and_transcribed_words': real_and_transcribed_words,
                   'recording_ipa': recording_ipa, 'start_time': start_time, 'end_time': end_time,
                   'real_and_transcribed_words_ipa': real_and_transcribed_words_ipa, 'pronunciation_accuracy': pronunciation_accuracy,
-                  'pronunciation_categories': pronunciation_categories}
+                  'pronunciation_categories': pronunciation_categories,
+                  'ipa_transcript': recording_ipa} # Chave 'ipa_transcript' adicionada
 
         return result
 
