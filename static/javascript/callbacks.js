@@ -28,7 +28,8 @@ let startTime, endTime;
 let realWords, mappedWords; // <-- ADICIONE ESTA LINHA
 // API related variables 
 let AILanguage = "fr"; // Standard is German
-
+var synth = window.speechSynthesis;
+let utterance = null; 
 
 let STScoreAPIKey = 'rll5QsTiv83nti99BW6uCmvs9BDVxSB39SVFceYb'; // Public Key. If, for some reason, you would like a private one, send-me a message and we can discuss some possibilities
 let apiMainPathSample = '';// 'http://127.0.0.1:3001';// 'https://a3hj0l2j2m.execute-api.eu-central-1.amazonaws.com/Prod';
@@ -257,54 +258,82 @@ const recordSample = async () => {
 
 }
 
+// Function to find the best voice for a specific language
+const findBestVoice = (targetLang) => {
+    const langPrefix = targetLang.substring(0, 2); // 'fr' or 'en'
+    let voices = synth.getVoices().filter((voice) => voice.lang.startsWith(langPrefix));
+
+    if (voices.length === 0) {
+        console.warn(`No voice found for language: ${targetLang}`);
+        return null;
+    }
+
+    // Search priority:
+    // 1. Specific voice for the locale (e.g., en-GB) and high quality.
+    // 2. Specific voice for the locale.
+    // 3. First voice found for the language (e.g., any 'en' voice).
+
+    const premiumKeywords = ["enhanced", "premium", "neural", "google", "microsoft", "apple", "natural"];
+    
+    let bestVoice = voices.find(voice => voice.lang === targetLang && premiumKeywords.some(kw => voice.name.toLowerCase().includes(kw)));
+    if (bestVoice) return bestVoice;
+
+    bestVoice = voices.find(voice => voice.lang === targetLang);
+    if (bestVoice) return bestVoice;
+    
+    // If it's English, prioritize British voices if exact 'en-GB' not found
+    if(langPrefix === 'en') {
+        let ukVoice = voices.find(v => v.name.toLowerCase().includes('uk') || v.name.toLowerCase().includes('british'));
+        if(ukVoice) return ukVoice;
+    }
+
+    // If it's French, prioritize French voices
+    if(langPrefix === 'fr') {
+        let frVoice = voices.find(v => v.name.toLowerCase().includes('french') || v.name.toLowerCase().includes('france'));
+        if(frVoice) return frVoice;
+    }
+
+    console.log(`No specific voice for '${targetLang}' found. Using first available: ${voices[0].name}`);
+    return voices[0]; 
+};
+
 const changeLanguage = (language, generateNewSample = false) => {
     voices = synth.getVoices();
     AILanguage = language;
     languageFound = false;
-    let languageIdentifier, languageName;
+    let targetLang;
+    
     switch (language) {
-        case 'de':
-
-            document.getElementById("languageBox").innerHTML = "German";
-            languageIdentifier = 'de';
-            languageName = 'Anna';
-            break;
-
         case 'en':
-
             document.getElementById("languageBox").innerHTML = "English";
-            languageIdentifier = 'en';
-            languageName = 'Daniel';
+            targetLang = 'en-GB'; // Prioritize British English
             break;
 
         case 'fr':
             document.getElementById("languageBox").innerHTML = "French";
-            languageIdentifier = 'fr';
-            languageName = 'Paul';
+            targetLang = 'fr-FR'; // Prioritize French from France
             break;
-    };
-
-    for (idx = 0; idx < voices.length; idx++) {
-        if (voices[idx].lang.slice(0, 2) == languageIdentifier && voices[idx].name == languageName) {
-            voice_synth = voices[idx];
-            languageFound = true;
-            break;
-        }
-
+            
+        default:
+            console.warn(`Unsupported language: ${language}`);
+            return;
     }
-    // If specific voice not found, search anything with the same language 
-    if (!languageFound) {
-        for (idx = 0; idx < voices.length; idx++) {
-            if (voices[idx].lang.slice(0, 2) == languageIdentifier) {
-                voice_synth = voices[idx];
-                languageFound = true;
-                break;
-            }
-        }
+
+    // Use the improved voice selection function
+    voice_synth = findBestVoice(targetLang);
+    
+    if (voice_synth) {
+        languageFound = true;
+        console.log(`Selected voice: ${voice_synth.name} (Language: ${voice_synth.lang})`);
+    } else {
+        console.warn(`No voice found for language: ${language}`);
+        languageFound = false;
     }
+    
     if (generateNewSample)
         getNextSample();
 }
+
 
 //################### Speech-To-Score function ########################
 const mediaStreamConstraints = {
