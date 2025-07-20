@@ -210,7 +210,7 @@ def lambda_handler(event, context):
                     is_letter_correct_all_words += str(is_correct)
 
         pair_accuracy_category = ' '.join(
-            [str(result['pair_accuracy_category'][i]) for i in range(len(result['pair_accuracy_category']))])
+            [str(result['pronunciation_categories'][i]) for i in range(len(result['pronunciation_categories']))])
 
         # CORREÇÃO APLICADA - Mapear tempos corretamente com palavras limpas
         if 'start_time' in result and 'end_time' in result:
