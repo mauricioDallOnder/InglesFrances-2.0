@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
-    <meta charset="UTF-8">
+        <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -18,147 +18,99 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
 
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
-
-
 </head>
 
-<body style="height: 100%; width: 100%; background-color: white; max-width: 90%;">
-
-    <div>
-
-        <div style="display:flex; flex-direction: row;">
-
-
-            <div style="display:inline-block; margin-left: 1.5em;">
-                <i class="material-icons icon-text-home" style="text-align: right;" onclick="history.go(0)">home</i>
-            </div>
-
-            <h1 id='main_title'> AI Pronunciation Trainer
-            </h1>
-        </div>
-
-
-        <div class="expanded">
-            <div class="horizontal-flexbox" style="display:flex; flex-direction: row;">
-
-
-                <p class="accuracy-text" style="font-size:1em; text-align: left; padding-top: 3px; padding-left: 5px;">
-                    Language: </p>
-                <!--dropbtn accuracy-text-->
+<body>
+    <div class="app-container">
+        <!-- Cabeçalho -->
+        <header class="app-header">
+            <h1 id="main_title">AI Pronunciation Trainer</h1>
+            <div class="header-controls">
                 <div class="dropdown">
-                    <button id="languageBox" class="dropbtn accuracy-text"
-                        style="font-size:1em; text-align: left; padding-top: 3px; padding-left: 0px;">English</button>
+                    <button id="languageBox" class="dropbtn">English</button>
                     <div class="dropdown-content">
-                        
-                        <a href="javascript:changeLanguage('en',true)" class="accuracy-text ;"
-                            style="padding-top: 3px; ">English</a>
-                             <a href="javascript:changeLanguage('fr',true)" class="accuracy-text ;"
-                            style="padding-top: 3px; ">French</a>
+                        <a href="javascript:changeLanguage('en', true)">English</a>
+                        <a href="javascript:changeLanguage('fr', true)">French</a>
                     </div>
                 </div>
-
-                <p id="section_accuracy" class="accuracy-text"
-                    style="text-align: left; color: black; font-size: larger;">
-                    | Score: 0
-                </p>
-
+                <p id="section_accuracy" class="score-text">| Pontuação: 0</p>
             </div>
+        </header>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <!-- Cartão de Exibição de Texto -->
+            <div id="text-area" class="text-display-card">
+                <p id="original_script" class="main-text" contenteditable>Clique em "Próxima" para gerar uma nova frase.</p>
+                
+                <!-- Grade de Transcrição com o novo layout -->
+                <div class="transcription-grid">
+                    <!-- Item de largura total para o português -->
+                    <div class="transcription-item portuguese-item">
+                        <h3>Aproximação em Português</h3>
+                        <p id="portuguese_script" class="portuguese-text">-</p>
+                    </div>
+
+                    <!-- Container para os itens IPA lado a lado -->
+                    <div class="ipa-row">
+                        <div class="transcription-item">
+                            <h3>Transcrição IPA Original</h3>
+                            <p id="ipa_script" class="ipa-text">-</p>
+                        </div>
+                        <div class="transcription-item">
+                            <h3>Sua Pronúncia (IPA)</h3>
+                            <p id="recorded_ipa_script" class="ipa-text recorded-ipa">-</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Elemento de tradução escondido para não quebrar o JS, mas invisível na tela -->
+                <p id="translated_script" class="translation-text" style="display: none;"></p>
+            </div>
+
+            <!-- Painel de Resultados e Áudio -->
+            <div class="audio-results-panel">
+                <div class="playback-controls">
+                    <a id="playSampleAudio" href="javascript:playAudio()" class="round-button disabled">
+                        <i class="material-icons">play_arrow</i>
+                    </a>
+                    <a id="playRecordedAudio" href="javascript:playRecording()" class="round-button disabled">
+                        <i class="material-icons">record_voice_over</i>
+                    </a>
+                </div>
+                <div class="accuracy-display">
+                    <p>Precisão:</p>
+                    <p id="pronunciation_accuracy" class="accuracy-score">-</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Barra de Detalhes da Palavra -->
+        <div class="word-details-bar">
+            <h3>Referência | Palavra Pronunciada</h3>
+            <p id="single_word_ipa_pair">Reference | Spoken</p>
         </div>
 
-        <div style="margin-bottom: 200px;">
-
-        </div>
-
-
-        <div class="container">
-
-            <div class="horizontal-flexbox" style="position: absolute; top: 2%; ">
-
-                <a id="playSampleAudio" href="javascript:playAudio()" class="round-button disabled" style="color:white; text-align:center;
-                    position: absolute; top: 2%; "><i class="material-icons icon-text">play_arrow</i>
+        <!-- Rodapé com Ações -->
+        <footer class="app-footer">
+            <div id="radio-difficulty" class="difficulty-controls radio">
+                <input label="Fácil" type="radio" id="lengthCat2" name='length' checked onclick="javascript:getNextSample()">
+                <input label="Médio" type="radio" id="lengthCat3" name='length' onclick="javascript:getNextSample()">
+                <input label="Difícil" type="radio" id="lengthCat4" name='length' onclick="javascript:getNextSample()">
+                <input label="Aleatório" type="radio" id="lengthCat1" name='length' onclick="javascript:getNextSample()">
+            </div>
+            
+            <div class="main-actions">
+                <a id="recordAudio" href="javascript:updateRecordingState()" class="mic-button disabled">
+                    <i id="recordIcon" class="material-icons">mic</i>
                 </a>
-
-                <a id="playRecordedAudio" href="javascript:playRecording()" class="round-button disabled"
-                    style="color:white; text-align:center; position: absolute; top: 15%; "><i
-                        class="material-icons icon-text">record_voice_over</i>
-                </a>
-                <p id="pronunciation_accuracy" class="expanded accuracy-text"
-                    style="text-align: center; color: black; position: absolute;  top: 27%; ">
-                    -
-                </p>
-
+                <div id="nextButtonDiv">
+                     <button id="buttonNext" class="button-next" onclick="javascript:getNextSample()">Próxima</button>
+                </div>
             </div>
-
-            <div id="text-area" class="main-text-div">
-
-                <p id="original_script" class=" bigger-text text-primary main-text" contenteditable>Click on the bar on the
-                    right
-                    to
-                    generate a
-                    new sentence (please use chrome web browser).
-                </p>
-                <p id="ipa_script" class="text-muted bigger-text ipa-text"> Before speaking, click on the mic button
-                    below to start recording and then click again when you're done.
-                </p>
-                <p id="portuguese_script" class="text-success medium-text ipa-text" style="font-style: italic; margin-top: 5px;">
-                    Transcrição aproximada em português aparecerá aqui.
-                </p>
-                <p id="recorded_ipa_script" class="text-primary ipa-text">On the left bottom you can choose the
-                    difficult. On the upper left you can choose the language.
-                </p>
-                <p id="translated_script" class="text-muted medium-text ipa-text"> The corresponding IPA reading of each
-                    sentence will also be displayed. If you never heard from IPA, you can check out this
-                    <a href="https://www.youtube.com/watch?v=mzrLZi6fipA&list=RDCMUCQAUWk_yGz7bk1181DrijNw&start_radio=1&rv=mzrLZi6fipA&t=22&ab_channel=FluentForever"
-                        target=”_blank”>playlist</a>. Try to get at least 690 points a day. Don't be shy! You can do it
-                    :)
-                </p>
-
-            </div>
-
-            <div id="nextButtonDiv" style="position: absolute; left: 90%; top:0%; height: 100%;" class="flex-container">
-                <button id="buttonNext" class="expanded button-next" onclick="javascript:getNextSample()">
-                    <span></span></a>
-            </div>
-        </div>
-
-
-
-
-        <div class="container-small flex expand"
-            style="align-items: center; text-align: center; vertical-align:middle; ">
-            <p id="single_word_ipa_pair" class="expand ipa-text-small"
-                style="text-align: center; vertical-align: middle;">Reference | Spoken
-            </p>
-        </div>
-
-
-        <div id="btn-record" class="expanded mic-button-div">
-            <a id="recordAudio" href="javascript:updateRecordingState()" class="round-button-mic disabled"
-                style="color:white; text-align:center; "><i id="recordIcon" class="material-icons icon-text-mic">mic</i>
-            </a>
-        </div>
-
-
-        <div id="radio-difficulty" class="radio" style="position: fixed; top: 95%; left: 2%;">
-            <input label="Random" type="radio" id="lengthCat1" name='length' onclick="javascript:getNextSample()">
-            <input label="Easy" type="radio" id="lengthCat2" name='length' checked onclick="javascript:getNextSample()">
-            <input label="Medium" type="radio" id="lengthCat3" name='length' onclick="javascript:getNextSample()">
-            <input label="Hard" type="radio" id="lengthCat4" name='length' onclick="javascript:getNextSample()">
-        </div>
-
+        </footer>
     </div>
 
-
-  
-
-
-
-
-
+    <!-- Scripts -->
 
 </body>
-
-
-
 </html>
