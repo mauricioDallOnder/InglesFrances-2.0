@@ -381,7 +381,7 @@ const startMediaDevice = () => {
                         real_transcripts_ipa = data.real_transcripts_ipa.split(" ");
                         matched_transcripts_ipa = data.matched_transcripts_ipa.split(" ");
                         wordCategories = data.pair_accuracy_category.split(" ");
-                        let currentTextWords = currentText[0].split(" ");
+                        let currentTextWords = cleanAndSplitText(currentText[0]);
 
                         // Mantém a string de correção como uma única string, sem split.
                         const correctness_string = data.is_letter_correct_all_words;
@@ -635,7 +635,7 @@ const correctFrenchWordTiming = (word_idx, startTimes, endTimes) => {
     // Estratégia 4: Tratamento especial para palavras muito curtas (artigos, preposições)
     const currentText = getCurrentText();
     if (currentText) {
-        const words = cleanAndSplitText(currentText, 'fr');
+        const words = cleanAndSplitText(currentText);
         if (word_idx < words.length) {
             const currentWord = words[word_idx];
             const shortWords = ['le', 'la', 'les', 'un', 'une', 'de', 'du', 'des', 'à', 'au', 'aux', 'et', 'ou', 'ne', 'se', 'me', 'te', 'ce'];
@@ -688,36 +688,15 @@ const correctEnglishWordTiming = (word_idx, startTimes, endTimes) => {
 };
 
 // Função para limpar e dividir texto (JavaScript)
-const cleanAndSplitText = (text, language = 'fr') => {
+const cleanAndSplitText = (text) => {
     if (!text) return [];
+
+    // Remove pontuação comum, mas mantém o apóstrofo (') e o hífen (-)
+    let cleanedText = text.replace(/[.,;!?]/g, '');
     
-    // Converter para minúsculas
-    text = text.toLowerCase().trim();
-    
-    // Tratamento especial para contrações francesas
-    if (language === 'fr') {
-        const contractions = {
-            "l'": "le ",
-            "d'": "de ",
-            "n'": "ne ",
-            "m'": "me ",
-            "t'": "te ",
-            "s'": "se ",
-            "c'": "ce ",
-            "j'": "je ",
-            "qu'": "que "
-        };
-        
-        for (const [contraction, expansion] of Object.entries(contractions)) {
-            text = text.replace(new RegExp(contraction, 'g'), expansion);
-        }
-    }
-    
-    // Remover pontuação mas manter hífens dentro de palavras
-    text = text.replace(/[^\w\s\-]|(?<!\w)-|-(?!\w)/g, ' ');
-    
-    // Dividir por espaços e remover strings vazias
-    return text.split(/\s+/).filter(word => word.trim().length > 0);
+    // Converte para minúsculas e divide por espaços.
+    // .filter(Boolean) remove quaisquer strings vazias resultantes de espaços duplos.
+    return cleanedText.toLowerCase().trim().split(/\s+/).filter(Boolean);
 };
 
 // Função melhorada para obter texto atual limpo
