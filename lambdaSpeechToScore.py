@@ -68,19 +68,12 @@ def clean_and_split_text(text: str, language: str = 'fr') -> List[str]:
     return words
 
 def map_words_to_times(original_text: str, transcribed_words: List[str], 
-                      start_times: List[float], end_times: List[float],
-                      language: str = 'fr') -> Tuple[List[str], List[float], List[float]]:
-    """
-    Mapeia palavras limpas com seus tempos correspondentes.
-    """
-    # Limpar e dividir texto original
+                      start_times: List[float], end_times: List[float], language: str = 'fr'):
     original_words = clean_and_split_text(original_text, language)
     
     # Se os arrays de tempo não correspondem ao texto transcrito, ajustar
     if len(transcribed_words) != len(start_times):
         print(f"Aviso: Desalinhamento detectado. Palavras: {len(transcribed_words)}, Tempos: {len(start_times)}")
-        
-        # Truncar ou estender arrays de tempo conforme necessário
         min_length = min(len(transcribed_words), len(start_times), len(end_times))
         transcribed_words = transcribed_words[:min_length]
         start_times = start_times[:min_length]
@@ -195,7 +188,8 @@ def lambda_handler(event, context):
         # Usar função corrigida para palavras limpas
         words_real_clean = clean_and_split_text(real_transcripts, language)
         mapped_words_clean = clean_and_split_text(matched_transcripts, language)
-
+        print("Words real clean:", words_real_clean)
+        print("Mapped words clean:", mapped_words_clean)
         is_letter_correct_all_words = ''
         for idx, word_real in enumerate(words_real_original):
             if idx < len(mapped_words_original):
@@ -219,8 +213,8 @@ def lambda_handler(event, context):
             
             # Aplicar correção de mapeamento
             corrected_words, corrected_start_times, corrected_end_times = map_words_to_times(
-                real_text, mapped_words_clean, original_start_times, original_end_times, language
-            )
+    real_text, mapped_words_clean, result['start_time'], result['end_time'], language
+)
             
             start_time_corrected = ' '.join(map(str, corrected_start_times))
             end_time_corrected = ' '.join(map(str, corrected_end_times))

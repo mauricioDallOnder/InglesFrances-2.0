@@ -58,7 +58,7 @@ class PronunciationTrainer:
         fade_duration_in_samples = 0.05*self.sampling_rate
         word_locations_in_samples = [(int(np.maximum(0, word['start_ts']-fade_duration_in_samples)), int(np.minimum(
             audio_length_in_samples-1, word['end_ts']+fade_duration_in_samples))) for word in word_locations_in_samples]
-
+        
         return audio_transcript, word_locations_in_samples
 
     def getWordsRelativeIntonation(self, Audio: torch.tensor, word_locations: list):
@@ -84,14 +84,13 @@ class PronunciationTrainer:
         recording_transcript, recording_ipa, word_locations = self.getAudioTranscript(
             recordedAudio)
         print('Time for NN to transcript audio: ', str(time.time()-start))
-
+        print("Word locations:", word_locations)
         start = time.time()
         real_and_transcribed_words, real_and_transcribed_words_ipa, mapped_words_indices = self.matchSampleAndRecordedWords(
             real_text, recording_transcript)
         print('Time for matching transcripts: ', str(time.time()-start))
 
-        start_time, end_time = self.getWordLocationsFromRecordInSeconds(
-            word_locations, mapped_words_indices)
+        start_time, end_time = self.getWordLocationsFromRecordInSeconds(word_locations, mapped_words_indices)
 
         pronunciation_accuracy, current_words_pronunciation_accuracy = self.getPronunciationAccuracy(
             real_and_transcribed_words)  # _ipa
@@ -99,12 +98,17 @@ class PronunciationTrainer:
         pronunciation_categories = self.getWordsPronunciationCategory(
             current_words_pronunciation_accuracy)
 
-        result = {'recording_transcript': recording_transcript,
+        result = {
+                'start_time': start_time,
+                 'end_time': end_time,
+            'recording_transcript': recording_transcript,
                   'real_and_transcribed_words': real_and_transcribed_words,
                   'recording_ipa': recording_ipa, 'start_time': start_time, 'end_time': end_time,
                   'real_and_transcribed_words_ipa': real_and_transcribed_words_ipa, 'pronunciation_accuracy': pronunciation_accuracy,
                   'pronunciation_categories': pronunciation_categories,
                   'ipa_transcript': recording_ipa} # Chave 'ipa_transcript' adicionada
+        print("Result start_time:", result['start_time'])
+        print("Result end_time:", result['end_time'])
 
         return result
 
@@ -123,15 +127,19 @@ class PronunciationTrainer:
 
         return current_recorded_transcript, current_recorded_ipa, current_recorded_word_locations
 
-    def getWordLocationsFromRecordInSeconds(self, word_locations, mapped_words_indices) -> list:
+    def getWordLocationsFromRecordInSeconds(self, word_locations, mapped_words_indices):
         start_time = []
         end_time = []
-        for word_idx in range(len(mapped_words_indices)):
-            start_time.append(float(word_locations[mapped_words_indices[word_idx]]
-                                    [0])/self.sampling_rate)
-            end_time.append(float(word_locations[mapped_words_indices[word_idx]]
-                                  [1])/self.sampling_rate)
-        return ' '.join([str(time) for time in start_time]), ' '.join([str(time) for time in end_time])
+        # Only include timings for valid indices
+        for idx in mapped_words_indices:
+            if idx >= 0 and idx < len(word_locations):  # Check bounds
+                start_time.append(float(word_locations[idx][0]) / self.sampling_rate)
+                end_time.append(float(word_locations[idx][1]) / self.sampling_rate)
+            else:
+                # Fallback for unmatched words
+                start_time.append(0.0)
+                end_time.append(0.0)
+        return start_time, end_time  # Return lists, not strings
 
     ##################### END ASR Functions ###########################
 
@@ -156,6 +164,11 @@ class PronunciationTrainer:
                 (words_real[word_idx],    mapped_words[word_idx]))
             real_and_transcribed_words_ipa.append((self.ipa_converter.convertToPhonem(words_real[word_idx]),
                                                    self.ipa_converter.convertToPhonem(mapped_words[word_idx])))
+            print("Transcribed words:", words_estimated)
+            print("Expected words:", words_real)
+            print("Mapped indices:", mapped_words_indices)
+            
+            
         return real_and_transcribed_words, real_and_transcribed_words_ipa, mapped_words_indices
 
     def getPronunciationAccuracy(self, real_and_transcribed_words_ipa) -> float:
