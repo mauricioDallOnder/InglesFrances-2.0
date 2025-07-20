@@ -138,7 +138,9 @@ def similar_words(word1: str, word2: str, threshold: float = 0.8) -> bool:
     similarity = len(common_chars) / max_len
     return similarity >= threshold
 
-# Função principal do lambda (modificada)
+# NO ARQUIVO: lambdaSpeechToScore.py
+# SUBSTITUA TODA A FUNÇÃO lambda_handler
+
 def lambda_handler(event, context):
     data = json.loads(event['body'])
     
@@ -166,62 +168,51 @@ def lambda_handler(event, context):
         signal, fs = audioread_load(tmp_name)
         signal = transform(torch.Tensor(signal)).unsqueeze(0)
 
-        # Processar o áudio com o modelo de pronunciação
-        start = time.time()
+        # 1. O trainer agora faz o trabalho pesado de processamento e alinhamento
         result = trainer_SST_lambda[language].processAudioForGivenText(
             signal, real_text)
         
+        # --- INÍCIO DA CORREÇÃO ---
+        # 2. Em vez de reprocessar o texto, usamos as listas de palavras já corrigidas
+        #    diretamente do resultado do trainer. Isso garante consistência.
+        words_real_clean = [word[0] for word in result['real_and_transcribed_words']]
+        mapped_words_clean = [word[1] for word in result['real_and_transcribed_words']]
+
+        print("Words real clean (from trainer):", words_real_clean)
+        print("Mapped words clean (from trainer):", mapped_words_clean)
+
+        # A lógica de IPA e precisão já usa o resultado direto, o que é bom
         real_transcripts_ipa = ' '.join(
             [word[0] for word in result['real_and_transcribed_words_ipa']])
         matched_transcripts_ipa = ' '.join(
             [word[1] for word in result['real_and_transcribed_words_ipa']])
-
-        real_transcripts = ' '.join(
-            [word[0] for word in result['real_and_transcribed_words']])
-        matched_transcripts = ' '.join(
-            [word[1] for word in result['real_and_transcribed_words']])
-
-        # CORREÇÃO APLICADA AQUI - Em vez de split simples, usar função corrigida
-        words_real_original = real_transcripts.lower().split()  # Manter original para compatibilidade
-        mapped_words_original = matched_transcripts.split()     # Manter original para compatibilidade
         
-        # Usar função corrigida para palavras limpas
-        words_real_clean = clean_and_split_text(real_transcripts, language)
-        mapped_words_clean = clean_and_split_text(matched_transcripts, language)
-        print("Words real clean:", words_real_clean)
-        print("Mapped words clean:", mapped_words_clean)
+        pair_accuracy_category = ' '.join(
+            [str(category) for category in result['pronunciation_categories']])
+
+        # 3. Verificamos se os tempos existem e garantimos que o número de palavras
+        #    e tempos bate ANTES de continuar.
+        if 'start_time' in result and 'end_time' in result and len(result['start_time']) == len(words_real_clean):
+            start_time_str = ' '.join(map(str, result['start_time']))
+            end_time_str = ' '.join(map(str, result['end_time']))
+        else:
+            # Fallback caso haja desalinhamento (como segurança)
+            print(f"Aviso de segurança: Desalinhamento detectado no Lambda. Palavras: {len(words_real_clean)}, Tempos: {len(result.get('start_time', []))}")
+            start_time_str = ' '.join(['0.0'] * len(words_real_clean))
+            end_time_str = ' '.join(['0.5'] * len(words_real_clean))
+
+        # A lógica para 'is_letter_correct_all_words' precisa usar as palavras já processadas
         is_letter_correct_all_words = ''
-        for idx, word_real in enumerate(words_real_original):
-            if idx < len(mapped_words_original):
+        for idx, word_real in enumerate(words_real_clean):
+            if idx < len(mapped_words_clean):
                 mapped_letters, mapped_letters_indices = wm.get_best_mapped_words(
-                    mapped_words_original[idx], word_real)
+                    mapped_words_clean[idx], word_real)
 
                 is_letter_correct = wm.getWhichLettersWereTranscribedCorrectly(
-                    word_real, mapped_letters)  # , mapped_letters_indices)
-                is_letter_correct_all_words += ''.join([str(is_correct)
-                                                       for is_correct in is_letter_correct])
-                for is_correct in is_letter_correct:
-                    is_letter_correct_all_words += str(is_correct)
+                    word_real, mapped_letters)
+                is_letter_correct_all_words += ''.join([str(int(is_correct)) for is_correct in is_letter_correct])
 
-        pair_accuracy_category = ' '.join(
-            [str(result['pronunciation_categories'][i]) for i in range(len(result['pronunciation_categories']))])
-
-        # CORREÇÃO APLICADA - Mapear tempos corretamente com palavras limpas
-        if 'start_time' in result and 'end_time' in result:
-            original_start_times = result['start_time']
-            original_end_times = result['end_time']
-            
-            # Aplicar correção de mapeamento
-            corrected_words, corrected_start_times, corrected_end_times = map_words_to_times(
-    real_text, mapped_words_clean, result['start_time'], result['end_time'], language
-)
-            
-            start_time_corrected = ' '.join(map(str, corrected_start_times))
-            end_time_corrected = ' '.join(map(str, corrected_end_times))
-        else:
-            # Fallback se não houver tempos
-            start_time_corrected = ' '.join(['0.0'] * len(words_real_clean))
-            end_time_corrected = ' '.join(['0.5'] * len(words_real_clean))
+        # --- FIM DA CORREÇÃO ---
 
         return {
             'statusCode': 200,
@@ -237,8 +228,8 @@ def lambda_handler(event, context):
                 'matched_transcripts_ipa': matched_transcripts_ipa,
                 'pair_accuracy_category': pair_accuracy_category,
                 'is_letter_correct_all_words': is_letter_correct_all_words,
-                'start_time': start_time_corrected,  # Usar tempos corrigidos
-                'end_time': end_time_corrected,      # Usar tempos corrigidos
+                'start_time': start_time_str,  # Usar tempos já formatados
+                'end_time': end_time_str,      # Usar tempos já formatados
                 'ipa_transcript': result['ipa_transcript']
             })
         }

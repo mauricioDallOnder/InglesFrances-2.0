@@ -11,6 +11,16 @@ import RuleBasedModels
 from string import punctuation
 import time
 
+# ADICIONE ESTA FUNÇÃO NO INÍCIO DO ARQUIVO
+def clean_text(text: str) -> list:
+    """
+    Limpa o texto, remove pontuação, converte para minúsculas e divide em palavras.
+    """
+    # Remove pontuação, mas mantém apóstrofos para não separar contrações ainda
+    text_no_punct = ''.join(char for char in text if char not in punctuation or char == "'")
+    # Converte para minúsculas e divide em palavras
+    words = text_no_punct.lower().split()
+    return words
 
 def getTrainer(language: str):
 
@@ -112,6 +122,7 @@ class PronunciationTrainer:
 
         return result
 
+    # SUBSTITUA A FUNÇÃO ORIGINAL POR ESTA
     def getAudioTranscript(self, recordedAudio: torch.Tensor = None):
         current_recorded_audio = recordedAudio
 
@@ -122,11 +133,26 @@ class PronunciationTrainer:
 
         current_recorded_transcript, current_recorded_word_locations = self.getTranscriptAndWordsLocations(
             current_recorded_audio.shape[1])
+        
+        # --- INÍCIO DA CORREÇÃO 1 ---
+        # Garante que a quantidade de palavras e de localizações seja a mesma.
+        # O ideal seria corrigir o modelo ASR, mas isso previne o erro.
+        transcribed_words = current_recorded_transcript.split()
+        min_length = min(len(transcribed_words), len(current_recorded_word_locations))
+
+        # Trunca as listas para terem o mesmo tamanho
+        transcribed_words = transcribed_words[:min_length]
+        current_recorded_word_locations = current_recorded_word_locations[:min_length]
+
+        # Remonta a string de transcrição para consistência
+        current_recorded_transcript = " ".join(transcribed_words)
+        # --- FIM DA CORREÇÃO 1 ---
+
         current_recorded_ipa = self.ipa_converter.convertToPhonem(
             current_recorded_transcript)
 
         return current_recorded_transcript, current_recorded_ipa, current_recorded_word_locations
-
+    
     def getWordLocationsFromRecordInSeconds(self, word_locations, mapped_words_indices):
         start_time = []
         end_time = []
@@ -144,13 +170,18 @@ class PronunciationTrainer:
     ##################### END ASR Functions ###########################
 
     ##################### Evaluation Functions ###########################
+    # SUBSTITUA A FUNÇÃO ORIGINAL POR ESTA
     def matchSampleAndRecordedWords(self, real_text, recorded_transcript):
-        words_estimated = recorded_transcript.split()
-
+        
+        # --- INÍCIO DA CORREÇÃO 2 ---
+        # Usa a nova função clean_text para processar os textos de forma consistente
+        words_estimated = clean_text(recorded_transcript)
+        
         if real_text is None:
-            words_real = self.current_transcript[0].split()
+            words_real = clean_text(self.current_transcript[0])
         else:
-            words_real = real_text.split()
+            words_real = clean_text(real_text)
+        # --- FIM DA CORREÇÃO 2 ---
 
         mapped_words, mapped_words_indices = wm.get_best_mapped_words(
             words_estimated, words_real)
@@ -158,17 +189,22 @@ class PronunciationTrainer:
         real_and_transcribed_words = []
         real_and_transcribed_words_ipa = []
         for word_idx in range(len(words_real)):
-            if word_idx >= len(mapped_words)-1:
-                mapped_words.append('-')
+            # Adiciona verificação para evitar 'index out of range'
+            if word_idx < len(mapped_words):
+                mapped_word = mapped_words[word_idx]
+            else:
+                mapped_word = '-' # Token para palavra não encontrada
+
             real_and_transcribed_words.append(
-                (words_real[word_idx],    mapped_words[word_idx]))
+                (words_real[word_idx], mapped_word))
             real_and_transcribed_words_ipa.append((self.ipa_converter.convertToPhonem(words_real[word_idx]),
-                                                   self.ipa_converter.convertToPhonem(mapped_words[word_idx])))
-            print("Transcribed words:", words_estimated)
-            print("Expected words:", words_real)
-            print("Mapped indices:", mapped_words_indices)
-            
-            
+                                                self.ipa_converter.convertToPhonem(mapped_word)))
+        
+        # Os prints de depuração que você tinha no seu log original
+        print("Transcribed words (cleaned):", words_estimated)
+        print("Expected words (cleaned):", words_real)
+        print("Mapped indices:", mapped_words_indices)
+                
         return real_and_transcribed_words, real_and_transcribed_words_ipa, mapped_words_indices
 
     def getPronunciationAccuracy(self, real_and_transcribed_words_ipa) -> float:
