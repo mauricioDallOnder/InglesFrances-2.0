@@ -41,29 +41,33 @@
         <main class="main-content">
             <!-- Cartão de Exibição de Texto -->
             <div id="text-area" class="text-display-card">
-                <p id="original_script" class="main-text" contenteditable>Clique em "Próxima" para gerar uma nova frase.</p>
+                <p id="original_script" class="main-text" contenteditable>Escreva ou gere um texto clicando no botão abaixo :</p>
                 
-                <!-- Grade de Transcrição com o novo layout -->
+                  <div class="main-actions">
+                <a id="recordAudio" href="javascript:updateRecordingState()" class="mic-button disabled">
+                    <i id="recordIcon" class="material-icons">mic</i>
+                </a>
+                <div id="nextButtonDiv">
+                     <button id="buttonNext" class="button-next" onclick="javascript:getNextSample()">Gerar uma frase</button>
+                </div>
+            </div>
+                <!-- Grade de Transcrição -->
                 <div class="transcription-grid">
-                    <!-- Item de largura total para o português -->
                     <div class="transcription-item portuguese-item">
                         <h3>Aproximação em Português</h3>
-                        <p id="portuguese_script" class="portuguese-text">-</p>
+                        <p id="portuguese_script" class="portuguese-text ">-</p>
                     </div>
-
-                    <!-- Container para os itens IPA lado a lado -->
                     <div class="ipa-row">
-                        <div class="transcription-item">
+                        <div class="transcription-item ipa-item">
                             <h3>Transcrição IPA Original</h3>
                             <p id="ipa_script" class="ipa-text">-</p>
                         </div>
-                        <div class="transcription-item">
+                        <div class="transcription-item ipa-item">
                             <h3>Sua Pronúncia (IPA)</h3>
                             <p id="recorded_ipa_script" class="ipa-text recorded-ipa">-</p>
                         </div>
                     </div>
                 </div>
-                <!-- Elemento de tradução escondido para não quebrar o JS, mas invisível na tela -->
                 <p id="translated_script" class="translation-text" style="display: none;"></p>
             </div>
 
@@ -92,25 +96,24 @@
 
         <!-- Rodapé com Ações -->
         <footer class="app-footer">
-            <div id="radio-difficulty" class="difficulty-controls radio">
-                <input label="Fácil" type="radio" id="lengthCat2" name='length' checked onclick="javascript:getNextSample()">
-                <input label="Médio" type="radio" id="lengthCat3" name='length' onclick="javascript:getNextSample()">
-                <input label="Difícil" type="radio" id="lengthCat4" name='length' onclick="javascript:getNextSample()">
-                <input label="Aleatório" type="radio" id="lengthCat1" name='length' onclick="javascript:getNextSample()">
+            <!-- ESTRUTURA DOS CONTROLOS DE DIFICULDADE CORRIGIDA -->
+            <div id="radio-difficulty" class="difficulty-controls">
+                <input type="radio" id="lengthCat2" name="length" checked onclick="javascript:getNextSample()">
+                <label for="lengthCat2">Fácil</label>
+
+                <input type="radio" id="lengthCat3" name="length" onclick="javascript:getNextSample()">
+                <label for="lengthCat3">Médio</label>
+
+                <input type="radio" id="lengthCat4" name="length" onclick="javascript:getNextSample()">
+                <label for="lengthCat4">Difícil</label>
+
+                <input type="radio" id="lengthCat1" name="length" onclick="javascript:getNextSample()">
+                <label for="lengthCat1">Aleatório</label>
             </div>
             
-            <div class="main-actions">
-                <a id="recordAudio" href="javascript:updateRecordingState()" class="mic-button disabled">
-                    <i id="recordIcon" class="material-icons">mic</i>
-                </a>
-                <div id="nextButtonDiv">
-                     <button id="buttonNext" class="button-next" onclick="javascript:getNextSample()">Próxima</button>
-                </div>
-            </div>
+          
         </footer>
     </div>
-
-    <!-- Scripts -->
 
 </body>
 </html>

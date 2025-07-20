@@ -54,7 +54,7 @@ def getTrainer(language: str):
         phonem_converter = RuleBasedModels.EngPhonemConverter()
     elif language == 'fr':
         phonem_converter = RuleBasedModels.EpitranPhonemConverter(
-            epitran.Epitran('fra-Latn-p'))
+            epitran.Epitran('fra-Latn'))
     else:
         raise ValueError('Idioma não implementado')
 

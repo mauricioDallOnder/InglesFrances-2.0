@@ -20,7 +20,7 @@
 
 body {
     font-family: var(--font-family);
-    background-color: #eef2f5; /* Um fundo neutro e suave */
+    background: linear-gradient(45deg, rgb(65, 89, 208) 0%, rgb(200, 79, 192) 50%, rgb(255, 205, 112) 100%);
     color: var(--text-color);
     display: flex;
     justify-content: center;
@@ -29,11 +29,13 @@ body {
     padding: 1rem;
 }
 
-/* Container principal da aplicação - LARGURA AUMENTADA */
+
+
+/* Container principal da aplicação */
 .app-container {
     width: 100%;
-    max-width: 1100px; /* Aumentado para 1100px */
-    background-color: #ffffff;
+    max-width: 1100px;
+    background-color: rgba(255, 255, 255, 0.9);
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     overflow: hidden;
@@ -166,11 +168,7 @@ body {
     margin-bottom: 0.5rem;
 }
 
-.transcription-item p {
-    font-size: 1rem;
-    font-weight: 500;
-    word-break: break-all;
-}
+
 
 /* Nova regra para a linha com os dois IPAs */
 .ipa-row {
@@ -179,16 +177,53 @@ body {
     gap: 1rem;
 }
 
-/* O item .portuguese-item já ocupará a largura total por ser um filho direto do flex container */
 .portuguese-item {
-    background-color: #e3f2fd; /* Cor de fundo azul claro para destaque */
-    border-color: #90caf9;
+   	border: 2px solid #0d6efd;
+    background-color: #e3f2fd;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
+.portuguese-item > h3{
+	font-size: 1.4rem;
+    color: #0d6efd;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #0d6efd;
+    padding-bottom: 6px;
+}
+
+.ipa-item{
+	border: 2px solid #198754;
+    background-color: #e6f4ea;
+    padding: 20px;
+    border-radius: 8px;
+}
+.ipa-item > h3{
+	font-size: 1.4rem;
+	color: #198754;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	margin-bottom: 10px;
+	border-bottom: 1px solid #198754;
+	padding-bottom: 6px;
+}
+
 /* --- FIM DOS ESTILOS ATUALIZADOS --- */
 
-.ipa-text { color: var(--secondary-color); }
+.ipa-text { font-size: 1.6rem;
+    font-weight: bold;
+    color: #333;
+    line-height: 1.4;
+    margin-top: 8px; }
 .recorded-ipa { color: var(--primary-color); }
-.portuguese-text { color: var(--success-color); font-style: italic; }
+.portuguese-text { font-size: 1.6rem;
+    font-weight: bold;
+    color: #333;
+    line-height: 1.4;
+    margin-top: 8px;}
 .translation-text { color: #555; }
 
 /* Painel de resultados e áudio */
@@ -261,38 +296,36 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* Controles de dificuldade */
+/* --- ESTILOS CORRIGIDOS PARA OS CONTROLOS DE DIFICULDADE --- */
 .difficulty-controls {
     display: flex;
     gap: 0.5rem;
 }
-.difficulty-controls input {
-    display: none;
+.difficulty-controls input[type="radio"] {
+    display: none; /* Esconde o botão de rádio original, que é o correto */
 }
-.difficulty-controls input + label {
+.difficulty-controls label {
     padding: 0.5rem 1rem;
     border: 1px solid var(--border-color);
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s;
+    user-select: none; /* Impede a seleção de texto ao clicar */
 }
-.difficulty-controls input:checked + label {
+.difficulty-controls input[type="radio"]:checked + label {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
 }
-.difficulty-controls input:not(:checked)::after {
-    content: attr(label);
-}
-.difficulty-controls input:checked::after {
-    content: attr(label);
-}
+/* --- FIM DA CORREÇÃO --- */
 
 /* Ações principais (microfone e botão) */
 .main-actions {
     display: flex;
     align-items: center;
     gap: 1rem;
+	align-content: center;
+	justify-content: center;
 }
 
 .mic-button {
@@ -319,15 +352,16 @@ body {
 }
 
 .button-next {
-    background-color: var(--secondary-color);
-    color: white;
+    color: #fff;
+    background-color:  var(--danger-color);
+    border-color: #198754;
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
     font-weight: 500;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: #198754 0.3s;
 }
 .button-next:hover {
     background-color: #5a6268;

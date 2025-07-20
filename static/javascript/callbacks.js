@@ -345,134 +345,98 @@ const mediaStreamConstraints = {
 
 
 const startMediaDevice = () => {
-    navigator.mediaDevices.getUserMedia(mediaStreamConstraints).then(_stream => {
-        stream = _stream
+    navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 48000 } }).then(_stream => {
+        stream = _stream;
         mediaRecorder = new MediaRecorder(stream);
 
-        let currentSamples = 0
         mediaRecorder.ondataavailable = event => {
-
-            currentSamples += event.data.length
             audioChunks.push(event.data);
         };
 
         mediaRecorder.onstop = async () => {
-
-
             document.getElementById("recordIcon").innerHTML = 'mic';
             blockUI();
 
-
             audioBlob = new Blob(audioChunks, { type: 'audio/ogg;' });
-
             let audioUrl = URL.createObjectURL(audioBlob);
             audioRecorded = new Audio(audioUrl);
-
             let audioBase64 = await convertBlobToBase64(audioBlob);
 
-            let minimumAllowedLength = 6;
-            if (audioBase64.length < minimumAllowedLength) {
-                setTimeout(UIRecordingError, 50); // Make sure this function finished after get called again
+            if (audioBase64.length < 6) {
+                setTimeout(UIRecordingError, 50);
                 return;
             }
 
             try {
-                // Get currentText from "original_script" div, in case user has change it
-                // Using .innerText reliably gets only the visible text, ignoring all HTML tags (<a>, <font>, etc.)
                 let text = document.getElementById("original_script").innerText;
-
-                // The text is already clean, so we just assign it.
                 currentText = [text];
 
                 await fetch(apiMainPathSTS + '/GetAccuracyFromRecordedAudio', {
                     method: "post",
                     body: JSON.stringify({ "title": currentText[0], "base64Audio": audioBase64, "language": AILanguage }),
                     headers: { "X-Api-Key": STScoreAPIKey }
+                })
+                .then(res => res.json())
+                .then(responseData => {
+                    const data = JSON.parse(responseData.body);
 
-                }).then(res => res.json()).
-                    then(responseData => { // Renomeado para 'responseData' para clareza
+                    if (playAnswerSounds) playSoundForAnswerAccuracy(parseFloat(data.pronunciation_accuracy));
 
-                        // ADICIONE ESTA LINHA: Converte a string 'body' em um objeto JSON utilizável
-                        const data = JSON.parse(responseData.body);
-                        console.log(data)
+                    document.getElementById("recorded_ipa_script").innerHTML = "/ " + data.ipa_transcript + " /";
+                    document.getElementById("main_title").innerHTML = page_title;
+                    document.getElementById("pronunciation_accuracy").innerHTML = data.pronunciation_accuracy + "%";
+                    document.getElementById("ipa_script").innerHTML = data.real_transcripts_ipa;
 
-                        if (playAnswerSounds)
-                            playSoundForAnswerAccuracy(parseFloat(data.pronunciation_accuracy))
+                    startTime = data.start_time;
+                    endTime = data.end_time;
+                    real_transcripts_ipa = data.real_transcripts_ipa.split(" ");
+                    matched_transcripts_ipa = data.matched_transcripts_ipa.split(" ");
+                    realWords = data.real_words.split(" ");
+                    mappedWords = data.mapped_words.split(" ");
+                    wordCategories = data.pair_accuracy_category.split(" ");
 
-                        document.getElementById("recorded_ipa_script").innerHTML = "/ " + data.ipa_transcript + " /";
-                        document.getElementById("recordAudio").classList.add('disabled');
-                        document.getElementById("recordAudio").classList.add('disabled');
-                        document.getElementById("main_title").innerHTML = page_title;
-                        document.getElementById("pronunciation_accuracy").innerHTML = data.pronunciation_accuracy + "%";
-                        document.getElementById("ipa_script").innerHTML = data.real_transcripts_ipa
+                    // --- INÍCIO DA CORREÇÃO CRÍTICA ---
+                    // Usa a função UNIFICADA para garantir 100% de sincronia
+                    let currentTextWords = cleanAndSplitText(currentText[0]);
+                    console.log("Current Text Words:", currentTextWords);
+                    // --- FIM DA CORREÇÃO CRÍTICA ---
 
-                                            // CÓDIGO NOVO (CORRIGIDO)
-                        startTime = data.start_time;
-                        endTime = data.end_time;
-
-                        real_transcripts_ipa = data.real_transcripts_ipa.split(" ");
-                        matched_transcripts_ipa = data.matched_transcripts_ipa.split(" ");
-                        realWords = data.real_words.split(" ");
-                        mappedWords = data.mapped_words.split(" ");
-                        wordCategories = data.pair_accuracy_category.split(" ");
-                        let currentTextWords = cleanAndSplitText(currentText[0]);
-
-                        // Mantém a string de correção como uma única string, sem split.
-                        const correctness_string = data.is_letter_correct_all_words;
-                  
-                // CÓDIGO NOVO E CORRIGIDO
                     let coloredWords = "";
-                    // O índice da string de correção de letras
-                    let correctness_idx = 0; 
-                    
+                    const correctness_string = data.is_letter_correct_all_words;
+                    let correctness_idx = 0;
+
                     for (let word_idx = 0; word_idx < currentTextWords.length; word_idx++) {
                         let wordTemp = '';
                         const currentWord = currentTextWords[word_idx];
-                        
-                        // Pega a categoria geral de pronúncia da palavra (0: verde, 1: laranja, 2: vermelho)
                         const wordCategory = parseInt(wordCategories[word_idx]);
                         const overallWordColor = accuracy_colors[wordCategory];
 
                         for (let letter_idx = 0; letter_idx < currentWord.length; letter_idx++) {
                             let final_letter_color = '';
-
-                            // Se a pronúncia da palavra foi ruim (vermelha) ou média (laranja),
-                            // usa essa cor para todas as letras.
-                            if (wordCategory === 1 || wordCategory === 2) { // 1=laranja, 2=vermelho
+                            if (wordCategory === 1 || wordCategory === 2) {
                                 final_letter_color = overallWordColor;
                             } else {
-                                // Se a pronúncia da palavra foi boa (verde), usa a lógica letra a letra.
                                 const letter_is_correct = correctness_string[correctness_idx] === '1';
                                 final_letter_color = letter_is_correct ? 'green' : 'red';
                             }
-                            
                             wordTemp += '<font color=' + final_letter_color + '>' + currentWord[letter_idx] + "</font>";
-                            
-                            // Avança o índice da string de correção de qualquer maneira
-                            if(correctness_idx < correctness_string.length -1)
-                                correctness_idx++;
+                            if (correctness_idx < correctness_string.length) correctness_idx++;
                         }
-                        
                         coloredWords += " " + wrapWordForIndividualPlayback(wordTemp, word_idx);
                     }
 
-
-
-                        document.getElementById("original_script").innerHTML = coloredWords
-
-                        currentSoundRecorded = true;
-                        unblockUI();
-                        document.getElementById("playRecordedAudio").classList.remove('disabled');
-
-                    });
-            }
-            catch {
+                    document.getElementById("original_script").innerHTML = coloredWords.trim();
+                    currentSoundRecorded = true;
+                    unblockUI();
+                });
+            } catch (error) {
+                console.error("Erro ao processar áudio:", error);
                 UIError();
             }
         };
-
     });
 };
+
 startMediaDevice();
 
 // ################### Audio playback ##################
@@ -740,19 +704,13 @@ const correctEnglishWordTiming = (word_idx, startTimes, endTimes) => {
     };
 };
 
-// Função para limpar e dividir texto (JavaScript)
+// --- FUNÇÃO DE LIMPEZA UNIFICADA ---
 const cleanAndSplitText = (text) => {
     if (!text) return [];
-
-    // 1. Converte para minúsculas
     let lowerText = text.toLowerCase();
-
-    // 2. Remove apenas a pontuação que não faz parte de palavras (.,;?!)
-    // Esta expressão regular faz exatamente o mesmo que a do Python
+    // Remove pontuação final mas mantém apóstrofos e hífens
     let cleanedText = lowerText.replace(/[.,;?!]/g, '');
-
-    // 3. Divide o texto limpo por espaços e remove quaisquer elementos vazios
-    // .filter(Boolean) é uma forma curta de remover strings vazias do array
+    // Divide por espaços e remove itens vazios
     return cleanedText.trim().split(/\s+/).filter(Boolean);
 };
 

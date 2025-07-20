@@ -13,7 +13,7 @@ def get_phonem_converter(language: str):
         phonem_converter = EngPhonemConverter()
     elif language == 'fr':
         phonem_converter = EpitranPhonemConverter(
-            epitran.Epitran('fra-Latn-p'))
+            epitran.Epitran('fra-Latn'))
     else:
         raise ValueError('Language not implemented')
 
