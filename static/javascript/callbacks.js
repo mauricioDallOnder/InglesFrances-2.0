@@ -346,13 +346,10 @@ const startMediaDevice = () => {
 
             try {
                 // Get currentText from "original_script" div, in case user has change it
-                let text = document.getElementById("original_script").innerHTML;
-                // Remove html tags
-                text = text.replace(/<[^>]*>?/gm, '');
-                //Remove spaces on the beginning and end
-                text = text.trim();
-                // Remove double spaces
-                text = text.replace(/\s\s+/g, ' ');
+                // Using .innerText reliably gets only the visible text, ignoring all HTML tags (<a>, <font>, etc.)
+                let text = document.getElementById("original_script").innerText;
+
+                // The text is already clean, so we just assign it.
                 currentText = [text];
 
                 await fetch(apiMainPathSTS + '/GetAccuracyFromRecordedAudio', {
@@ -361,44 +358,49 @@ const startMediaDevice = () => {
                     headers: { "X-Api-Key": STScoreAPIKey }
 
                 }).then(res => res.json()).
-                    then(data => {
+                    then(responseData => { // Renomeado para 'responseData' para clareza
+
+                        // ADICIONE ESTA LINHA: Converte a string 'body' em um objeto JSON utilizável
+                        const data = JSON.parse(responseData.body);
+                        console.log(data)
 
                         if (playAnswerSounds)
                             playSoundForAnswerAccuracy(parseFloat(data.pronunciation_accuracy))
 
                         document.getElementById("recorded_ipa_script").innerHTML = "/ " + data.ipa_transcript + " /";
                         document.getElementById("recordAudio").classList.add('disabled');
+                        document.getElementById("recordAudio").classList.add('disabled');
                         document.getElementById("main_title").innerHTML = page_title;
                         document.getElementById("pronunciation_accuracy").innerHTML = data.pronunciation_accuracy + "%";
                         document.getElementById("ipa_script").innerHTML = data.real_transcripts_ipa
 
-                        lettersOfWordAreCorrect = data.is_letter_correct_all_words.split(" ")
-
-
+                                            // CÓDIGO NOVO (CORRIGIDO)
                         startTime = data.start_time;
                         endTime = data.end_time;
 
+                        real_transcripts_ipa = data.real_transcripts_ipa.split(" ");
+                        matched_transcripts_ipa = data.matched_transcripts_ipa.split(" ");
+                        wordCategories = data.pair_accuracy_category.split(" ");
+                        let currentTextWords = currentText[0].split(" ");
 
-                        real_transcripts_ipa = data.real_transcripts_ipa.split(" ")
-                        matched_transcripts_ipa = data.matched_transcripts_ipa.split(" ")
-                        wordCategories = data.pair_accuracy_category.split(" ")
-                        let currentTextWords = currentText[0].split(" ")
+                        // Mantém a string de correção como uma única string, sem split.
+                        const correctness_string = data.is_letter_correct_all_words;
+                        let correctness_idx = 0; // Um índice para percorrer a string de correção.
 
-                        coloredWords = "";
+                        let coloredWords = "";
                         for (let word_idx = 0; word_idx < currentTextWords.length; word_idx++) {
+                            let wordTemp = '';
+                            let currentWord = currentTextWords[word_idx];
 
-                            wordTemp = '';
-                            for (let letter_idx = 0; letter_idx < currentTextWords[word_idx].length; letter_idx++) {
-                                letter_is_correct = lettersOfWordAreCorrect[word_idx][letter_idx] == '1'
-                                if (letter_is_correct)
-                                    color_letter = 'green'
-                                else
-                                    color_letter = 'red'
+                            for (let letter_idx = 0; letter_idx < currentWord.length; letter_idx++) {
+                                // Verifica a correção usando o índice corrido e avança o índice.
+                                let letter_is_correct = correctness_string[correctness_idx] === '1';
+                                correctness_idx++;
 
-                                wordTemp += '<font color=' + color_letter + '>' + currentTextWords[word_idx][letter_idx] + "</font>"
+                                let color_letter = letter_is_correct ? 'green' : 'red';
+                                wordTemp += '<font color=' + color_letter + '>' + currentWord[letter_idx] + "</font>";
                             }
-                            currentTextWords[word_idx]
-                            coloredWords += " " + wrapWordForIndividualPlayback(wordTemp, word_idx)
+                            coloredWords += " " + wrapWordForIndividualPlayback(wordTemp, word_idx);
                         }
 
 
