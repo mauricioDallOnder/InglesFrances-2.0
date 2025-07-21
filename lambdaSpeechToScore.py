@@ -226,7 +226,7 @@ def lambda_handler(event, context):
                 'pronunciation_accuracy': result['pronunciation_accuracy'],
                 'real_transcripts_ipa': real_transcripts_ipa,
                 'matched_transcripts_ipa': matched_transcripts_ipa,
-                  # --- ADICIONE ESTAS DUAS LINHAS ---
+                 # ------------------------------------
                 'real_words': ' '.join(words_real_clean),
                 'mapped_words': ' '.join(mapped_words_clean),
                 # ------------------------------------
