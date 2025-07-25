@@ -52,6 +52,11 @@ let ipaConversionTimeout = null;
 let isConvertingIPA = false;
 const IPA_DEBOUNCE_DELAY = 300; // milliseconds
 
+// --- NOVAS VARIÁVEIS ---
+let currentTooltip = null; // Controla o pop-up que está visível
+let lastAnalysisData = null; // Armazena os dados da API para o pop-up
+// --- FIM DAS NOVAS VARIÁVEIS ---
+
 //############################ UI general control functions ###################
 const unblockUI = () => {
     document.getElementById("recordAudio").classList.remove('disabled');
@@ -367,69 +372,80 @@ const startMediaDevice = () => {
                 return;
             }
 
+           // CÓDIGO CORRIGIDO E MAIS SEGURO
             try {
                 let text = document.getElementById("original_script").innerText;
                 currentText = [text];
 
-                await fetch(apiMainPathSTS + '/GetAccuracyFromRecordedAudio', {
+                const response = await fetch(apiMainPathSTS + '/GetAccuracyFromRecordedAudio', {
                     method: "post",
                     body: JSON.stringify({ "title": currentText[0], "base64Audio": audioBase64, "language": AILanguage }),
                     headers: { "X-Api-Key": STScoreAPIKey }
-                })
-                .then(res => res.json())
-                .then(responseData => {
-                    const data = JSON.parse(responseData.body);
-
-                    if (playAnswerSounds) playSoundForAnswerAccuracy(parseFloat(data.pronunciation_accuracy));
-
-                    document.getElementById("recorded_ipa_script").innerHTML = "/ " + data.ipa_transcript + " /";
-                    document.getElementById("main_title").innerHTML = page_title;
-                    document.getElementById("pronunciation_accuracy").innerHTML = data.pronunciation_accuracy + "%";
-                    document.getElementById("ipa_script").innerHTML = data.real_transcripts_ipa;
-
-                    startTime = data.start_time;
-                    endTime = data.end_time;
-                    real_transcripts_ipa = data.real_transcripts_ipa.split(" ");
-                    matched_transcripts_ipa = data.matched_transcripts_ipa.split(" ");
-                    realWords = data.real_words.split(" ");
-                    mappedWords = data.mapped_words.split(" ");
-                    wordCategories = data.pair_accuracy_category.split(" ");
-
-                    // --- INÍCIO DA CORREÇÃO CRÍTICA ---
-                    // Usa a função UNIFICADA para garantir 100% de sincronia
-                    let currentTextWords = cleanAndSplitText(currentText[0]);
-                    console.log("Current Text Words:", currentTextWords);
-                    // --- FIM DA CORREÇÃO CRÍTICA ---
-
-                    let coloredWords = "";
-                    const correctness_string = data.is_letter_correct_all_words;
-                    let correctness_idx = 0;
-
-                    for (let word_idx = 0; word_idx < currentTextWords.length; word_idx++) {
-                        let wordTemp = '';
-                        const currentWord = currentTextWords[word_idx];
-                        const wordCategory = parseInt(wordCategories[word_idx]);
-                        const overallWordColor = accuracy_colors[wordCategory];
-
-                        for (let letter_idx = 0; letter_idx < currentWord.length; letter_idx++) {
-                            let final_letter_color = '';
-                            if (wordCategory === 1 || wordCategory === 2) {
-                                final_letter_color = overallWordColor;
-                            } else {
-                                const letter_is_correct = correctness_string[correctness_idx] === '1';
-                                final_letter_color = letter_is_correct ? 'green' : 'red';
-                            }
-                            wordTemp += '<font color=' + final_letter_color + '>' + currentWord[letter_idx] + "</font>";
-                            if (correctness_idx < correctness_string.length) correctness_idx++;
-                        }
-                        coloredWords += " " + wrapWordForIndividualPlayback(wordTemp, word_idx);
-                    }
-
-                    document.getElementById("original_script").innerHTML = coloredWords.trim();
-                    currentSoundRecorded = true;
-                    unblockUI();
                 });
+
+                // 1. VERIFICA SE A RESPOSTA DA REDE FOI BEM-SUCEDIDA (ex: status 200)
+                if (!response.ok) {
+                    throw new Error(`Erro na API: status ${response.status}`);
+                }
+
+                const responseData = await response.json();
+
+                // 2. VERIFICA SE O 'body' DENTRO DO JSON EXISTE E É VÁLIDO
+                if (!responseData || typeof responseData.body !== 'string' || responseData.body.length === 0) {
+                    throw new Error("A resposta da API não continha um corpo ('body') válido.");
+                }
+
+                // 3. AGORA, COM SEGURANÇA, FAZ O PARSE DO JSON INTERNO
+                const data = JSON.parse(responseData.body);
+                lastAnalysisData = data; // Armazena os dados para o pop-up
+
+                // A partir daqui, seu código original continua
+                if (playAnswerSounds) playSoundForAnswerAccuracy(parseFloat(data.pronunciation_accuracy));
+
+                document.getElementById("recorded_ipa_script").innerHTML = "/ " + data.ipa_transcript + " /";
+                document.getElementById("main_title").innerHTML = page_title;
+                document.getElementById("pronunciation_accuracy").innerHTML = data.pronunciation_accuracy + "%";
+                document.getElementById("ipa_script").innerHTML = data.real_transcripts_ipa;
+
+                startTime = data.start_time;
+                endTime = data.end_time;
+                real_transcripts_ipa = data.real_transcripts_ipa.split(" ");
+                matched_transcripts_ipa = data.matched_transcripts_ipa.split(" ");
+                realWords = data.real_words.split(" ");
+                mappedWords = data.mapped_words.split(" ");
+                wordCategories = data.pair_accuracy_category.split(" ");
+                let currentTextWords = cleanAndSplitText(currentText[0]);
+
+                let coloredWords = "";
+                const correctness_string = data.is_letter_correct_all_words;
+                let correctness_idx = 0;
+
+                for (let word_idx = 0; word_idx < currentTextWords.length; word_idx++) {
+                    let wordTemp = '';
+                    const currentWord = currentTextWords[word_idx];
+                    const wordCategory = parseInt(wordCategories[word_idx]);
+                    const overallWordColor = accuracy_colors[wordCategory];
+
+                    for (let letter_idx = 0; letter_idx < currentWord.length; letter_idx++) {
+                        let final_letter_color = '';
+                        if (wordCategory === 1 || wordCategory === 2) {
+                            final_letter_color = overallWordColor;
+                        } else {
+                            const letter_is_correct = correctness_string[correctness_idx] === '1';
+                            final_letter_color = letter_is_correct ? 'green' : 'red';
+                        }
+                        wordTemp += '<font color=' + final_letter_color + '>' + currentWord[letter_idx] + "</font>";
+                        if (correctness_idx < correctness_string.length) correctness_idx++;
+                    }
+                    coloredWords += " " + wrapWordForIndividualPlayback(wordTemp, word_idx);
+                }
+
+                document.getElementById("original_script").innerHTML = coloredWords.trim();
+                currentSoundRecorded = true;
+                unblockUI();
+                
             } catch (error) {
+                // O erro capturado aqui será muito mais informativo
                 console.error("Erro ao processar áudio:", error);
                 UIError();
             }
@@ -780,10 +796,8 @@ const wrapWordForPlayingLink = (word, word_idx, isFromRecording, word_accuracy_c
 }
 
 const wrapWordForIndividualPlayback = (word, word_idx) => {
-
-
-    return '<a onmouseover="generateWordModal(' + word_idx.toString() + ')" style = " white-space:nowrap; " href="javascript:playNativeAndRecordedWord(' + word_idx.toString() + ')"  >' + word + '</a> '
-
+    // Adicionamos uma classe 'word-link' para identificar as palavras clicáveis
+    return `<a class="word-link" style="white-space:nowrap;" href="javascript:void(0)" onclick="showWordPopup(${word_idx}, this)">${word}</a> `;
 }
 
 // ########## Function to initialize server ###############
@@ -992,5 +1006,74 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeRealTimeIPA);
 } else {
     initializeRealTimeIPA();
+}
+
+/**
+ * Fecha o pop-up ativo se o usuário clicar fora dele.
+ */
+document.addEventListener('click', function (event) {
+    // Verifica se o pop-up existe e se o clique foi fora dele e não em uma palavra
+    if (currentTooltip && !currentTooltip.contains(event.target) && !event.target.classList.contains('word-link')) {
+        currentTooltip.remove();
+        currentTooltip = null;
+    }
+}, true);
+
+
+/**
+ * Cria e exibe um pop-up flutuante E ATUALIZA O PAINEL FIXO.
+ * @param {number} word_idx - O índice da palavra clicada.
+ * @param {HTMLElement} element - O elemento <a> da palavra que foi clicado.
+ */
+const showWordPopup = (word_idx, element) => {
+    generateWordModal(word_idx); // <-- ADICIONE ESTA LINHA AQUI
+
+    event.stopPropagation(); // Impede que o clique feche o pop-up imediatamente
+
+    // Fecha qualquer pop-up que já esteja aberto
+    if (currentTooltip) {
+        currentTooltip.remove();
+    }
+    
+    // Verifica se temos os dados da análise para trabalhar
+    if (!lastAnalysisData) {
+        console.error("Dados da análise não encontrados.");
+        return;
+    }
+
+    // O resto da função continua exatamente como está...
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+
+    // Pega os dados específicos da palavra usando o índice
+    const ref_word = (lastAnalysisData.real_words || '').split(' ')[word_idx];
+    const user_word = (lastAnalysisData.mapped_words || '').split(' ')[word_idx];
+    const ref_ipa = (lastAnalysisData.real_transcripts_ipa || '').split(' ')[word_idx];
+    const user_ipa = (lastAnalysisData.matched_transcripts_ipa || '').split(' ')[word_idx];
+
+    // Monta o conteúdo do pop-up
+    tooltip.innerHTML = `
+        <div class="tooltip-section">
+            <span style="font-weight: bold;">Referência:</span>
+            <span>${ref_word} [${ref_ipa}]</span>
+            <a href="javascript:playCurrentWord(${word_idx})" class="tooltip-play-button">▶️ Ouvir</a>
+        </div>
+        <hr>
+        <div class="tooltip-section">
+            <span style="font-weight: bold;">Sua Pronúncia:</span>
+            <span>${user_word} [${user_ipa}]</span>
+            <a href="javascript:playRecordedWord(${word_idx})" class="tooltip-play-button">▶️ Ouvir</a>
+        </div>
+    `;
+
+    document.body.appendChild(tooltip);
+
+    // Posiciona o pop-up acima da palavra
+    const spanRect = element.getBoundingClientRect();
+    tooltip.style.left = `${spanRect.left + window.scrollX}px`;
+    tooltip.style.top = `${spanRect.top + window.scrollY - tooltip.offsetHeight - 10}px`; // 10px de espaço
+
+    // Armazena a referência do pop-up atual
+    currentTooltip = tooltip;
 }
 

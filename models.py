@@ -40,37 +40,18 @@ def getASRModel(language: str,use_whisper:bool=True) -> IASRModel:
         raise ValueError('Language not implemented')
 
 
-def getTTSModel(language: str) -> nn.Module:
-
-    if language == 'de':
-
-        speaker = 'thorsten_v2'  # 16 kHz
-        model, _ = torch.hub.load(repo_or_dir='snakers4/silero-models',
-                                  model='silero_tts',
-                                  language=language,
-                                  speaker=speaker)
-
-    elif language == 'en':
-        speaker = 'lj_16khz'  # 16 kHz
-        model, _ = torch.hub.load(repo_or_dir='snakers4/silero-models',
-                               model='silero_tts',
-                               language=language,
-                               speaker=speaker)
-                               
-    # <<< ADICIONADO O BLOCO PARA FRANCÊS >>>
-    elif language == 'fr':
-        # 'gilles_16khz' é uma das vozes disponíveis para o francês
-        speaker = 'gilles_16khz'
-        model, _ = torch.hub.load(repo_or_dir='snakers4/silero-models',
-                                  model='silero_tts',
-                                  language=language,
-                                  speaker=speaker)
-    # <<< FIM DA ADIÇÃO >>>
-    
-    else:
-        raise ValueError('Language not implemented')
-
+def getTTSModel(language, speaker, device=torch.device('cpu')):
+    """
+    Carrega um modelo Silero TTS com base no idioma e no locutor especificado.
+    """
+    # A linha foi corrigida para descompactar os 5 valores de retorno
+    model, _, _, _, _ = torch.hub.load(repo_or_dir='snakers4/silero-models',
+                                       model='silero_tts',
+                                       language=language,
+                                       speaker=speaker)
+    model.to(device)
     return model
+    
 
 
 def getTranslationModel(language: str): # Retorna uma tupla (model, tokenizer)
