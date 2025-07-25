@@ -3,7 +3,7 @@ import unicodedata
 from FrenchSpecialRoules import *
 import logging
 # Inicializar Epitran para Francês
-epi = epitran.Epitran('fra-Latn')
+epi = epitran.Epitran('fra-Latn-p')
 import json
 
 
@@ -110,7 +110,8 @@ french_to_portuguese_phonemes = {
     'ɡə': { 'default': 'gue' },
     'ɡi': { 'default': 'gi' },
     'ʧ': { 'default': 'tch' },
-    'ʤ': { 'default': 'dj' }
+    'ʤ': { 'default': 'dj' },
+    'ty': { 'default': 'tu' },
 }
 
 # Características fonéticas
