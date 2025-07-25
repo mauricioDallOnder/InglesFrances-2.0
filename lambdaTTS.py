@@ -9,7 +9,7 @@ import os
 import base64
 
 sampling_rate = 16000
-model_TTS_lambda = AIModels.NeuralTTS(models.getTTSModel('de'), sampling_rate)
+model_TTS_lambda = AIModels.NeuralTTS(models.getTTSModel('fr'), sampling_rate)
 
 
 def lambda_handler(event, context):
