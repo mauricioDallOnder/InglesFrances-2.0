@@ -28,8 +28,7 @@ let startTime, endTime;
 let realWords, mappedWords; // <-- ADICIONE ESTA LINHA
 // API related variables 
 let AILanguage = "fr"; // Standard is German
-var synth = window.speechSynthesis;
-let utterance = null; 
+
 
 let STScoreAPIKey = 'rll5QsTiv83nti99BW6uCmvs9BDVxSB39SVFceYb'; // Public Key. If, for some reason, you would like a private one, send-me a message and we can discuss some possibilities
 let apiMainPathSample = '';// 'http://127.0.0.1:3001';// 'https://a3hj0l2j2m.execute-api.eu-central-1.amazonaws.com/Prod';
@@ -42,10 +41,11 @@ let soundFileGood = null;
 let soundFileOkay = null;
 let soundFileBad = null;
 
-// Speech generation
+// ################### Voice Synthesis Initialization ###################
 var synth = window.speechSynthesis;
-let voice_idx = 0;
+let voices = []; // Array global para armazenar as vozes carregadas
 let voice_synth = null;
+let utterance = null; 
 
 // Real-time IPA conversion variables
 let ipaConversionTimeout = null;
@@ -264,11 +264,13 @@ const recordSample = async () => {
 }
 
 // Function to find the best voice for a specific language
+// Function to find the best voice for a specific language
 const findBestVoice = (targetLang) => {
     const langPrefix = targetLang.substring(0, 2); // 'fr' or 'en'
-    let voices = synth.getVoices().filter((voice) => voice.lang.startsWith(langPrefix));
+    // A lista de vozes agora é o array global 'voices'
+    let filteredVoices = voices.filter((voice) => voice.lang.startsWith(langPrefix));
 
-    if (voices.length === 0) {
+    if (filteredVoices.length === 0) {
         console.warn(`No voice found for language: ${targetLang}`);
         return null;
     }
@@ -280,64 +282,78 @@ const findBestVoice = (targetLang) => {
 
     const premiumKeywords = ["enhanced", "premium", "neural", "google", "microsoft", "apple", "natural"];
     
-    let bestVoice = voices.find(voice => voice.lang === targetLang && premiumKeywords.some(kw => voice.name.toLowerCase().includes(kw)));
+    let bestVoice = filteredVoices.find(voice => voice.lang === targetLang && premiumKeywords.some(kw => voice.name.toLowerCase().includes(kw)));
     if (bestVoice) return bestVoice;
 
-    bestVoice = voices.find(voice => voice.lang === targetLang);
+    bestVoice = filteredVoices.find(voice => voice.lang === targetLang);
     if (bestVoice) return bestVoice;
     
-    // If it's English, prioritize British voices if exact 'en-GB' not found
     if(langPrefix === 'en') {
-        let ukVoice = voices.find(v => v.name.toLowerCase().includes('uk') || v.name.toLowerCase().includes('british'));
+        let ukVoice = filteredVoices.find(v => v.name.toLowerCase().includes('uk') || v.name.toLowerCase().includes('british'));
         if(ukVoice) return ukVoice;
     }
 
-    // If it's French, prioritize French voices
     if(langPrefix === 'fr') {
-        let frVoice = voices.find(v => v.name.toLowerCase().includes('french') || v.name.toLowerCase().includes('france'));
+        let frVoice = filteredVoices.find(v => v.name.toLowerCase().includes('french') || v.name.toLowerCase().includes('france'));
         if(frVoice) return frVoice;
     }
 
-    console.log(`No specific voice for '${targetLang}' found. Using first available: ${voices[0].name}`);
-    return voices[0]; 
+    console.log(`No specific voice for '${targetLang}' found. Using first available: ${filteredVoices[0].name}`);
+    return filteredVoices[0]; 
 };
 
+// ## ORDEM CORRIGIDA: 'changeLanguage' AGORA VEM ANTES DE SER USADA ##
 const changeLanguage = (language, generateNewSample = false) => {
-    voices = synth.getVoices();
     AILanguage = language;
     languageFound = false;
     let targetLang;
     
+    if (voices.length === 0) {
+        console.warn("A lista de vozes ainda está vazia. A seleção pode falhar.");
+        return; 
+    }
+
     switch (language) {
         case 'en':
             document.getElementById("languageBox").innerHTML = "English";
-            targetLang = 'en-GB'; // Prioritize British English
+            targetLang = 'en-GB';
             break;
-
         case 'fr':
             document.getElementById("languageBox").innerHTML = "French";
-            targetLang = 'fr-FR'; // Prioritize French from France
+            targetLang = 'fr-FR';
             break;
-            
         default:
             console.warn(`Unsupported language: ${language}`);
             return;
     }
 
-    // Use the improved voice selection function
     voice_synth = findBestVoice(targetLang);
     
     if (voice_synth) {
         languageFound = true;
-        console.log(`Selected voice: ${voice_synth.name} (Language: ${voice_synth.lang})`);
+        console.log(`Voz selecionada para ${language}: ${voice_synth.name}`);
     } else {
-        console.warn(`No voice found for language: ${language}`);
+        console.warn(`Nenhuma voz encontrada para o idioma: ${language}`);
         languageFound = false;
     }
     
-    if (generateNewSample)
+    if (generateNewSample) {
         getNextSample();
-}
+    }
+};
+
+const initializeAndLoadVoices = () => {
+    voices = synth.getVoices();
+    // Agora, quando esta função for chamada, 'changeLanguage' já existe.
+    if (AILanguage) {
+        changeLanguage(AILanguage, false); 
+    }
+    console.log("Vozes de síntese carregadas/atualizadas. Total:", voices.length);
+};
+
+// O restante da inicialização permanece o mesmo
+synth.onvoiceschanged = initializeAndLoadVoices;
+initializeAndLoadVoices();
 
 
 //################### Speech-To-Score function ########################
@@ -564,26 +580,40 @@ const playCurrentWord = async (word_idx) => {
 
 // TODO: Check if fallback is correct
 const playWithMozillaApi = (text) => {
-
-    if (languageFound) {
-        blockUI();
-        if (voice_synth == null)
-            changeLanguage(AILanguage);
-
-        var utterThis = new SpeechSynthesisUtterance(text);
-        utterThis.voice = voice_synth;
-         utterThis.pitch = 1;   // Tom da voz (1 é o padrão)
-         utterThis.rate = 1.0;  // <<-- AUMENTE ESTE VALOR PARA ACELERAR A FALA
-         utterThis.volume = 1;  // Volume (1 é o máximo)
-        utterThis.onend = function (event) {
+    // Verifica se temos uma voz selecionada para o idioma atual.
+    if (!voice_synth || !languageFound) {
+        console.error(`Tentando falar sem uma voz válida para o idioma ${AILanguage}. Tentando recarregar.`);
+        // Tenta re-selecionar a voz. Isso ajuda em casos extremos.
+        initializeAndLoadVoices(); 
+        
+        if(!voice_synth) {
+            console.error("Falha ao selecionar a voz. Abortando a fala.");
+            UINotSupported(); // Informa ao usuário que há um problema.
             unblockUI();
+            return;
         }
-        synth.speak(utterThis);
     }
-    else {
+
+    blockUI();
+
+    var utterThis = new SpeechSynthesisUtterance(text);
+    utterThis.voice = voice_synth; // Agora `voice_synth` deve ser válido.
+    utterThis.pitch = 1;
+    utterThis.rate = 1.0; 
+    utterThis.volume = 1;
+    
+    utterThis.onend = function (event) {
+        unblockUI();
+    };
+
+    utterThis.onerror = function(event) {
+        console.error('Erro na síntese de fala:', event.error);
+        unblockUI();
         UINotSupported();
-    }
-}
+    };
+    
+    synth.speak(utterThis);
+};
 // Versão corrigida das funções de reprodução de palavras gravadas
 // Corrige problemas de sincronização com pontuação
 
