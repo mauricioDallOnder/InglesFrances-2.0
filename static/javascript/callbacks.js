@@ -572,7 +572,9 @@ const playWithMozillaApi = (text) => {
 
         var utterThis = new SpeechSynthesisUtterance(text);
         utterThis.voice = voice_synth;
-        utterThis.rate = 0.7;
+         utterThis.pitch = 1;   // Tom da voz (1 é o padrão)
+         utterThis.rate = 1.0;  // <<-- AUMENTE ESTE VALOR PARA ACELERAR A FALA
+         utterThis.volume = 1;  // Volume (1 é o máximo)
         utterThis.onend = function (event) {
             unblockUI();
         }
