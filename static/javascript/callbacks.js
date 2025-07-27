@@ -163,7 +163,7 @@ const getNextSample = async () => {
 
     updateScore(parseFloat(document.getElementById("pronunciation_accuracy").innerHTML));
 
-    document.getElementById("main_title").innerHTML = "Processing new sample...";
+    document.getElementById("main_title").innerHTML = "Processando nova frase";
 
 
     if (document.getElementById('lengthCat1').checked) {
@@ -497,7 +497,7 @@ const playAudio = async () => {
         // Fallback to original text if no user text
         playWithMozillaApi(currentText[0]);
     }
-    document.getElementById("main_title").innerHTML = "Current Sound was played";
+    document.getElementById("main_title").innerHTML = "A frase atual terminou de ser lida";
 
 };
 
@@ -518,7 +518,7 @@ const playRecording = async (start = null, end = null) => {
             audioRecorded.addEventListener("ended", function () {
                 audioRecorded.currentTime = 0;
                 unblockUI();
-                document.getElementById("main_title").innerHTML = "Recorded Sound was played";
+                document.getElementById("main_title").innerHTML = "O som gravado foi tocado";
             });
             await audioRecorded.play();
 
@@ -532,7 +532,7 @@ const playRecording = async (start = null, end = null) => {
                 unblockUI();
                 audioRecorded.pause();
                 audioRecorded.currentTime = 0;
-                document.getElementById("main_title").innerHTML = "Recorded Sound was played";
+                document.getElementById("main_title").innerHTML = "O som gravado foi tocado";
             }, endTimeInMs);
 
         }
@@ -575,7 +575,7 @@ const playCurrentWord = async (word_idx) => {
         // Fallback to original text if no user text
         playWithMozillaApi(currentText[0].split(' ')[word_idx]);
     }
-    document.getElementById("main_title").innerHTML = "Word was played";
+    document.getElementById("main_title").innerHTML = "A palavra foi ouvida";
 }
 
 // TODO: Check if fallback is correct
